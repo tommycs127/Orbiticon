@@ -25,8 +25,10 @@
     </nav>
     <h1>Orbiticon</h1>
     <p>Animated sci-fi style circular identicon inspired by <a href="https://github.com/ea7ababe/identicon" target="_blank">identicon</a> by <a href="https://github.com/ea7ababe" target="_blank">ea7ababe</a>.</p>
+
+    <hr/>
     
-    <h1>Playground</h1>
+    <h2>Playground</h2>
     <div class="sticky-container">
       <div class="orbiticon sticky-item">
         <article id="orbiticon-container">
@@ -201,28 +203,28 @@
     
     <hr/>
     
-    <h1 id="naq">Never Asked Questions</h1>
+    <h2>Never Asked Questions</h2>
     
-    <h2>What is "Draw from radius"?</h2>
+    <h3>What is "Draw from radius"?</h3>
     <p><b>"Draw from radius"</b> defines the distance from the center of the circle where the rings begin to be drawn. This option helps create space for placing a circular image at the center, enhancing its uniqueness.</p>
     <p>Note that the script inside the SVG file modifies the viewBox (not the width and height) when (re)generating the pattern. Because of this, increasing this value moves the rings outward, gradually making them appear thinner due to scaling effects.</p>
     
-    <h2>What are sectors?</h2>
+    <h3>What are sectors?</h3>
     <p>Sectors are equal segments within each ring. For example, if a ring is divided into 8 sectors, it is split into 8 equal parts. The bits derived from the hash binary string determine which sectors will be filled.</p>    
     
-    <h2>How to disable random stroke width?</h2>
+    <h3>How to disable random stroke width?</h3>
     <p>Set both inputs in <b>"Range of random stroke width"</b> to the same value as the default width will do the trick.</p>
     
-    <h2>What does opacity do here?</h2>
+    <h3>What does opacity do here?</h3>
     <p>Opacity not only enhances visual appeal but also serves as an indicator of stroke width randomization. The greater the deviation from the default stroke width, the more transparent the stroke becomes.</p>
     <p>The <b>"Minimum opacity"</b> option sets a lower limit for opacity—lower values make strokes with greater width variations less visible, while setting it to <code>0</code> can make highly fluctuating strokes difficult or impossible to see. Conversely, setting it to <code>1</code> ensures that every ring remains fully opaque.</p>
     
-    <h2>How can you make it even cooler?</h2>
+    <h3>How can you make it even cooler?</h3>
     <p>Try applying the CSS rule <code>filter: drop-shadow(0px 0px 10px rgba(255, 255, 255, 0.2))</code> to add a subtle glowing effect.</p>
   </main>
   <footer>
     <small>
-      <ul class="footer" style="text-align: center;">
+      <ul class="footer">
         <li>tommycs127</li>
         <li><a href="https://github.com/tommycs127" target="_blank"><img src="https://tommycs127.github.io/orbiticon/web/orbiticon-github-link.svg" style="height: 5ex;" class="glow" /></a></li>
         <li>2025</li>
