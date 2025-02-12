@@ -1,5 +1,5 @@
 async function loadSVG() {
-  const response = await fetch("/orbiticon.svg");
+  const response = await fetch("https://tommycs127.github.io/orbiticon/orbiticon.svg");
   const svgText = await response.text();
   
   // Insert SVG into the page
