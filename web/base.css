@@ -59,6 +59,7 @@ form > fieldset > label:has([type=checkbox],[type=radio]) {
 ul.footer {
   padding-inline-start: 16px;
   padding-inline-end: 16px;
+  text-align: center;
 }
 
 ul.footer li {
