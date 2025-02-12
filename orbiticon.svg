@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Orbiticon by https://github.com/tommycs127. Inspired by https://github.com/ea7ababe/identicon -->
+<svg id="orbiticon"
+     xmlns="https://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="100%"
+     height="100%"
+     data-seed="Orbiticon"
+     data-from-radius="16"
+     data-sectors="8"
+     data-margin-between-orbits="2"
+     data-stroke-width="4"
+     data-min-opacity="0.4"
+     data-min-random-stroke-width="-16"
+     data-max-random-stroke-width="16"
+     data-animated="true"
+     data-min-rotation-time="10"
+     data-max-rotation-time="20"
+     data-colors="#c39,#9c3,#39c"
+>
+  <script type="application/ecmascript">
+    <![CDATA[
+      function getSVGAttribute(
+        svg, attr, defaultValue, postprocess = (v) => v
+      ) {
+        const value = svg.getAttribute(attr);
+        let parsedValue;
+        
+        if (value === null) {
+          parsedValue = defaultValue;
+        }
+        else if (typeof defaultValue === "number") {
+          const num = parseFloat(value);
+          parsedValue = (
+            Number.isFinite(num) ? num : defaultValue
+          );
+        }
+        else if (typeof defaultValue === "boolean") {
+          parsedValue = value === "true";
+        }
+        else if (typeof defaultValue === "string") {
+          parsedValue = value;
+        }
+        else if (Array.isArray(defaultValue)) {
+          parsedValue = value.split(",").map((str) => str.trim());
+        }
+        else {
+          parsedValue = defaultValue;
+        }
+        return postprocess(parsedValue);
+      }
+
+      function createPRNG(seedText) {
+        let seed = 0;
+        let hashHex = "";
+        let hashBin = "";
+
+        async function initSeed() {
+          const hashBuffer = await crypto.subtle.digest(
+            "SHA-256", new TextEncoder().encode(seedText)
+          );
+          seed = new DataView(hashBuffer).getUint32(0, true);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+  
+          hashHex = hashArray
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+
+          hashBin = hashArray
+            .map((b) => b.toString(2).padStart(8, "0"))
+            .join("");
+        }
+
+        function random(min, max) {
+          seed = (1664525 * seed + 1013904223) % 2 ** 32;
+          const value = seed / 2 ** 32;
+          return (
+            min !== undefined && max !== undefined ?
+            min + value * (max - min) :
+            value
+          );
+        }
+
+        return {
+          initSeed,
+          random,
+          getHashHex: () => hashHex,
+          getHashBin: () => hashBin
+        };
+      }
+
+      function getColor(hashHex, from, length = 6) {
+        hashHex = (hashHex + hashHex).slice(0, 64);
+        let start = from % (hashHex.length - length);
+        return "#" + hashHex.substring(start, start + length);
+      }
+
+      function purifyPath(path) {
+        return path.replace(/\s+/g, " ").trim();
+      }
+
+      function drawArc(cx, cy, radius, startAngle, sweepAngle) {
+        if (sweepAngle >= 360) {
+          return drawArc(cx, cy, radius, startAngle, 180) +
+            drawArc(cx, cy, radius, startAngle + 180, 180);
+        }
+
+        function toRadians(angle) {
+          return angle * Math.PI / 180;
+        }
+        const largeArcFlag = (
+          sweepAngle > 180 ? "1" : "0"
+        );
+
+        const x1 = cx + radius * Math.cos(toRadians(startAngle));
+        const y1 = cy + radius * Math.sin(toRadians(startAngle));
+        const x2 = cx + radius * Math.cos(toRadians(startAngle + sweepAngle));
+        const y2 = cy + radius * Math.sin(toRadians(startAngle + sweepAngle));
+
+        return `M ${x1},${y1} ` +
+          `A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2}`;
+      }
+
+      function isValidColor(color) {
+        return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color);
+      }
+
+      async function generateIdenticon() {
+        const svg = document.getElementById("orbiticon");
+        if (!svg) {
+          return;
+        }
+
+        const seed = svg.getAttribute("data-seed") || "orbiticon";
+        const prng = createPRNG(seed);
+        await prng.initSeed();
+
+        // Fetch attributes with default values
+        const fromRadius = Math.abs(
+          getSVGAttribute(svg, "data-from-radius", 4)
+        );
+        const sectors = getSVGAttribute(
+          svg, "data-sectors", 8, (v) => (
+            v === 0 ? 1 : Math.abs(v)
+          )
+        );
+        const strokeWidth = getSVGAttribute(
+          svg, "data-stroke-width", 4, (v) => Math.abs(v)
+        );
+        const marginBetweenOrbits = getSVGAttribute(
+          svg, "data-margin-between-orbits", 2, (v) => Math.abs(v)
+        );
+        const minRotationTime = getSVGAttribute(
+          svg, "data-min-rotation-time", 1, (v) => Math.abs(v)
+        );
+        const maxRotationTime = getSVGAttribute(
+          svg, "data-max-rotation-time", 10, (v) => Math.abs(v)
+        );
+        const colors = getSVGAttribute(
+          svg, "data-colors", [], (v) => v.filter(isValidColor)
+        );
+        const animated = sectors > 1 && getSVGAttribute(
+          svg, "data-animated", true
+        );
+        const minRandomStrokeWidth = getSVGAttribute(
+          svg, "data-min-random-stroke-width", -3
+        );
+        const maxRandomStrokeWidth = getSVGAttribute(
+          svg, "data-max-random-stroke-width", 3
+        );
+        const minOpacity = getSVGAttribute(
+          svg, "data-min-opacity", 0.4
+        );
+
+        const hashHex = prng.getHashHex();
+        const hashBin = prng.getHashBin();
+        
+        const rings = Math.ceil(hashHex.length * 4 / sectors);
+        const angleStep = 360 / sectors;
+
+        const size = function() {
+          let size_ = (
+            fromRadius + rings * (strokeWidth + marginBetweenOrbits)
+          ) * 2;
+          if (marginBetweenOrbits < 0) {
+            return size_ - marginBetweenOrbits * 2;
+          }
+          return size_;
+        }();
+
+        svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+        svg.setAttribute("fill", "none");
+
+        const cx = size / 2;
+        const cy = size / 2;
+
+        let radius = fromRadius + strokeWidth / 2;
+        let freeRadius = size / 2 - radius;
+
+        for (let ring = 0, index = 0; ring < rings; ring++) {
+          let startAngle = 0;
+          let pathData = "";
+          let hasActiveSectors = false;
+
+          for (let sector = 0; sector < sectors; sector++, index++) {
+            if (index >= hashBin.length) {
+              break;
+            }
+            if (hashBin[index] === "1") {
+              pathData += drawArc(cx, cy, radius, startAngle, angleStep) + " ";
+              hasActiveSectors = true;
+            }
+            startAngle += angleStep;
+          }
+
+          if (hasActiveSectors) {
+            const group = document.createElementNS(
+              "http://www.w3.org/2000/svg", "g"
+            );
+            const path = document.createElementNS(
+              "http://www.w3.org/2000/svg", "path"
+            );
+
+            path.setAttribute("d", purifyPath(pathData));
+            path.setAttribute("stroke", (
+              colors.length > 0 ?
+              colors[ring % colors.length] :
+              getColor(hashHex, ring * 5)
+            ));
+
+            // Pick the one that does not exceed the viewbox
+            const computedWidth = Math.min(
+              prng.random(
+                Math.min(strokeWidth, minRandomStrokeWidth),
+                Math.max(strokeWidth, maxRandomStrokeWidth)
+              ),
+              freeRadius * 2
+            );
+            path.setAttribute("stroke-width", computedWidth.toFixed(2));
+
+            const opacity = Math.max(
+              minOpacity,
+              1 - Math.abs(computedWidth - strokeWidth) / strokeWidth
+            );
+            path.setAttribute("opacity", opacity.toFixed(2));
+
+            group.appendChild(path);
+
+            const speed = prng.random(minRotationTime, maxRotationTime);
+            const direction = prng.random() > 0.5 ? 1 : -1;
+            
+            if (animated) {
+              const animate = document.createElementNS(
+                "http://www.w3.org/2000/svg", "animateTransform"
+              );
+              animate.setAttribute("attributeName", "transform");
+              animate.setAttribute("type", "rotate");
+              animate.setAttribute("from", `0 ${cx} ${cy}`);
+              animate.setAttribute("to", `${direction * 360} ${cx} ${cy}`);
+              animate.setAttribute("dur", `${speed}s`);
+              animate.setAttribute("repeatCount", "indefinite");
+
+              group.appendChild(animate);
+            }
+
+            svg.appendChild(group);
+          }
+
+          radius += strokeWidth + marginBetweenOrbits;
+          freeRadius = size / 2 - radius;
+        }
+      }
+
+      function observeDataChanges() {
+        const svg = document.getElementById("orbiticon");
+        if (!svg) {
+          return;
+        }
+
+        const observer = new MutationObserver((mutations) => {
+          const hasRelevantChange = mutations.some(
+            (mutation) => (
+              mutation.type === "attributes"
+              && mutation.attributeName.startsWith("data-")
+            )
+          );
+
+          if (hasRelevantChange) {
+            observer.disconnect();
+            svg.innerHTML = ""; 
+            generateIdenticon();
+            observer.observe(svg, { attributes: true });
+          }
+        });
+
+        observer.observe(svg, { attributes: true });
+      }
+
+      observeDataChanges();
+      generateIdenticon();
+    ]]>
+  </script>
+</svg>
